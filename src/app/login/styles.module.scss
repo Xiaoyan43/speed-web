@@ -1,0 +1,28 @@
+.login {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  .loginBox {
+    width: 300px;
+    margin: auto;
+    .title {
+      font-weight: normal;
+      font-size: 16px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+  }
+}
+.footer {
+  margin: 12px auto 8px;
+}
+.linkBox {
+  display: flex;
+  justify-content: space-between;
+  font-size: 14px;
+  // text-align: right;
+  .link {
+    color: #1da57a;
+  }
+}

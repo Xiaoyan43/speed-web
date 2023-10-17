@@ -1,0 +1,19 @@
+.register {
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  .registerBox {
+    width: 300px;
+    .title {
+      font-weight: normal;
+      font-size: 16px;
+      margin-bottom: 24px;
+      text-align: center;
+    }
+  }
+  .footer {
+    margin-top: 12px;
+    margin-bottom: 100px;
+  }
+}
