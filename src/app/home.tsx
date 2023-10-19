@@ -1,9 +1,9 @@
 'use client'
 
-import React, { useEffect, useState } from 'react';
-import {Space, Table, Tag, Button, Pagination, Modal, Form, Input} from 'antd';
-import type { ColumnsType } from 'antd/es/table';
-import { CustomLayout } from "@/components";
+import React, {useEffect, useState} from 'react';
+import {Space, Table, Tag, Button, Pagination, Modal, Form, Input, Dropdown, Menu, Checkbox, Rate, message} from 'antd';
+import type {ColumnsType} from 'antd/es/table';
+import {CustomLayout} from "@/components";
 import axios from "axios";
 import Cookies from "next-cookies";
 import {NextPageContext} from "next";
@@ -21,6 +21,11 @@ interface DataType {
     status: number;
     createTime: string;
     updateTime: string;
+    claim: string,
+    resultOfEvidence: string,
+    type: string,
+    participant: string,
+    rating: string
 }
 
 const HomePage: React.FC = () => {
@@ -30,18 +35,33 @@ const HomePage: React.FC = () => {
         pageSize: 10,
         total: 0,
     });
+    const [selectedColumns, setSelectedColumns] = useState<string[]>([
+        'title',
+        'authors',
+        'journal',
+        'year',
+        'volume',
+        'number',
+        'pages',
+        'doi',
+        'claim',
+        'resultOfEvidence',
+        'type',
+        'participant',
+        'rating'
+    ]);
 
     const data: DataType[] = jsonData
-        .filter(item => item.status === 2)
+        .filter((item) => item.status === 3)
         .map((item) => ({
             ...item,
             key: item._id,
         }));
 
     const fetchData = (page: number, pageSize: number) => {
-        fetch(`/api/userSubmitOfStatus?page=${page}&limit=${pageSize}&status=2`,{cache: 'no-store'})
-            .then(response => response.json())
-            .then(data => {
+        fetch(`/api/userSubmitOfStatus?page=${page}&limit=${pageSize}&status=3`, {cache: 'no-store'})
+            .then((response) => response.json())
+            .then((data) => {
                 setJsonData(data.data);
                 setPagination({
                     ...pagination,
@@ -49,7 +69,7 @@ const HomePage: React.FC = () => {
                     total: data.meta.totalItems,
                 });
             })
-            .catch(error => console.error(error));
+            .catch((error) => console.error(error));
     };
 
     useEffect(() => {
@@ -84,32 +104,49 @@ const HomePage: React.FC = () => {
         setValidateRequired(!validateRequired);
     };
 
+    const handleColumnSelect = (selectedColumn: string) => {
+        const updatedColumns = selectedColumns.includes(selectedColumn)
+            ? selectedColumns.filter((column) => column !== selectedColumn)
+            : [...selectedColumns, selectedColumn];
+        setSelectedColumns(updatedColumns);
+    };
+
     const columns: ColumnsType<DataType> = [
         {
             title: 'Title',
             dataIndex: 'title',
             key: 'title',
-            render: (text) => <a>{text}</a>,
+            sorter: (a, b) => a.title.localeCompare(b.title),
+            render: (text, record) => <a onClick={() => showRatingModal(record)}>{text}</a>,
         },
         {
             title: 'Authors',
             dataIndex: 'authors',
             key: 'authors',
+            filters: [
+                {text: 'John', value: 'John'},
+                {text: 'Jane', value: 'Jane'},
+                // Add more filter options
+            ],
+            onFilter: (value, record) => record.authors.includes(value),
         },
         {
             title: 'Journal',
             dataIndex: 'journal',
             key: 'journal',
+            sorter: (a, b) => a.journal.localeCompare(b.journal),
         },
         {
             title: 'Year',
             dataIndex: 'year',
             key: 'year',
+            sorter: (a, b) => a.year.localeCompare(b.year),
         },
         {
             title: 'Volume',
             dataIndex: 'volume',
             key: 'volume',
+            sorter: (a, b) => a.volume.localeCompare(b.volume),
         },
         {
             title: 'Number',
@@ -126,141 +163,197 @@ const HomePage: React.FC = () => {
             dataIndex: 'doi',
             key: 'doi',
         },
+        {
+            title: 'CLAIM',
+            dataIndex: 'claim',
+            key: 'claim',
+            sorter: (a, b) => a.claim.localeCompare(b.claim),
+        },
+        {
+            title: 'RESULT OF EVIDENCE',
+            dataIndex: 'resultOfEvidence',
+            key: 'resultOfEvidence',
+            sorter: (a, b) => a.resultOfEvidence.localeCompare(b.resultOfEvidence),
+        },
+        {
+            title: 'type',
+            dataIndex: 'type',
+            key: 'type',
+            sorter: (a, b) => a.type.localeCompare(b.type),
+        },
+        {
+            title: 'PARTICIPANT',
+            dataIndex: 'participant',
+            key: 'participant',
+            sorter: (a, b) => a.participant.localeCompare(b.participant),
+        },
+        {
+            title: 'RATING',
+            dataIndex: 'rating',
+            key: 'rating',
+            sorter: (a, b) => a.rating.localeCompare(b.rating),
+            render: (rating) => <Rate disabled defaultValue={rating} />,
+        }
     ];
 
     const cookies = Cookies({} as NextPageContext);
-    let token = cookies['token']
-    let _userInfoStr = cookies['userInfo']
+    let token = cookies['token'];
+    let _userInfoStr = cookies['userInfo'];
+    const [showModal, setShowModal] = useState(false);
+    const [selectedItem, setSelectedItem] = useState<DataType | null>(null);
+    const [rating, setRating] = useState(0);
+
+    const showRatingModal = (item: DataType) => {
+        setSelectedItem(item);
+        setShowModal(true);
+    };
+
+    const handleRatingChange = (value: number) => {
+        setRating(value);
+    };
+
+    const handleRatingSubmit = () => {
+        // Perform rating submission logic here, e.g., send rating to the server
+        console.log(`Rating for item with ID ${selectedItem?._id}: ${rating}`);
+        setShowModal(false);
+        handleSubmitRating();
+    };
+
+    const handleSubmitRating = async () => {
+        try {
+            // Send the rating to the server
+            const response = await axios.post("/api/rateItem", {
+                userSubmitId: selectedItem?._id,
+                rating: rating,
+            });
+            console.log('response', response)
+            // Check the response status and display a success or failure message
+            if (response.status == 200) {
+                // The rating was submitted successfully
+                setShowModal(false);
+                message.success("Rating submitted successfully");
+            } else {
+                // There was an error submitting the rating
+                message.error("Failed to submit rating");
+            }
+        } catch (error) {
+            console.error(error);
+            message.error("Failed to submit rating");
+        }
+    };
+
     return (
         <CustomLayout token={token} userInfo={_userInfoStr}>
-            <div style={{ textAlign: 'right', marginTop: '30px', marginRight: "100px"}}>
+            <Modal
+                title={`Rate "${selectedItem?.title}"`}
+                visible={showModal}
+                onCancel={() => setShowModal(false)}
+                onOk={handleRatingSubmit}
+            >
+                <div>
+                    <p>Please rate this item:</p>
+                    <Rate value={rating} onChange={handleRatingChange} />
+                </div>
+            </Modal>
+            <div style={{textAlign: 'right', marginTop: '30px', marginRight: '100px'}}>
+                <Dropdown
+                    overlay={
+                        <Menu>
+                            {columns.map((column ) => (
+                                <Menu.Item key={column.key}>
+                                    <Checkbox
+                                        checked={selectedColumns.includes(column.key)}
+                                        onChange={() => handleColumnSelect(column.key)}>
+                                        {column.title}
+                                    </Checkbox>
+                                </Menu.Item>
+                            ))}
+                        </Menu>
+                    }
+                    trigger={['click']}
+                    placement="bottomRight"
+                >
+                    <Button>Select Columns</Button>
+                </Dropdown>
+                <span style={{marginLeft: "20px"}}></span>
                 <Button type="primary" onClick={toggleForm}>
                     Add Article
                 </Button>
             </div>
-            <Modal
-                visible={showForm}
-                title="Add Article"
-                onCancel={toggleForm}
-                footer={null}
-            >
-                <Form form={form} onFinish={handleSubmit} validateTrigger="onSubmit">
+            <Modal visible={showForm} onCancel={toggleForm} footer={null}>
+                <Form form={form} onFinish={handleSubmit}>
                     <Form.Item
-                        name="title"
                         label="Title"
-                        rules={[
-                            {
-                                required: validateRequired,
-                                message: 'Please enter the title',
-                            },
-                        ]}
-                    >
-                        <Input />
+                        name="title"
+                        rules={[{required: validateRequired, message: 'Please enter the title.'}]}>
+                        <Input/>
                     </Form.Item>
                     <Form.Item
-                        name="authors"
                         label="Authors"
-                        rules={[
-                            {
-                                required: validateRequired,
-                                message: 'Please enter the authors',
-                            },
-                        ]}
-                    >
-                        <Input />
+                        name="authors"
+                        rules={[{required: validateRequired, message: 'Please enter the authors.'}]}>
+                        <Input/>
                     </Form.Item>
                     <Form.Item
-                        name="journal"
                         label="Journal"
-                        rules={[
-                            {
-                                required: validateRequired,
-                                message: 'Please enter the journal',
-                            },
-                        ]}
-                    >
-                        <Input />
+                        name="journal"
+                        rules={[{required: validateRequired, message: 'Please enter the journal.'}]}>
+                        <Input/>
                     </Form.Item>
                     <Form.Item
+                        label="Year"
                         name="year"
-                        label="Publication Year"
-                        rules={[
-                            {
-                                required: validateRequired,
-                                message: 'Please enter the publication year',
-                            },
-                        ]}
-                    >
-                        <Input />
+                        rules={[{required: validateRequired, message: 'Please enter the year.'}]}>
+                        <Input/>
                     </Form.Item>
                     <Form.Item
-                        name="volume"
                         label="Volume"
-                        rules={[
-                            {
-                                required: validateRequired,
-                                message: 'Please enter the volume',
-                            },
-                        ]}
-                    >
-                        <Input />
+                        name="volume"
+                        rules={[{required: validateRequired, message: 'Please enter the volume.'}]}>
+                        <Input/>
                     </Form.Item>
                     <Form.Item
+                        label="Number"
                         name="number"
-                        label="Issue"
-                        rules={[
-                            {
-                                required: validateRequired,
-                                message: 'Please enter the issue',
-                            },
-                        ]}
-                    >
-                        <Input />
+                        rules={[{required: validateRequired, message: 'Please enter the number.'}]}>
+                        <Input/>
                     </Form.Item>
                     <Form.Item
-                        name="pages"
                         label="Pages"
-                        rules={[
-                            {
-                                required: validateRequired,
-                                message: 'Please enter the pages',
-                            },
-                        ]}
-                    >
-                        <Input />
+                        name="pages"
+                        rules={[{required: validateRequired, message: 'Please enter the pages.'}]}>
+                        <Input/>
                     </Form.Item>
                     <Form.Item
-                        name="doi"
                         label="DOI"
-                        rules={[
-                            {
-                                required: validateRequired,
-                                message: 'Please enter the DOI',
-                            },
-                        ]}
-                    >
-                        <Input />
+                        name="doi"
+                        rules={[{required: validateRequired, message: 'Please enter the DOI.'}]}>
+                        <Input/>
                     </Form.Item>
                     <Form.Item>
                         <Button type="primary" htmlType="submit">
                             Submit
                         </Button>
+                        <Button htmlType="button" onClick={handleToggleValidation} style={{marginLeft: '10px'}}>
+                            {validateRequired ? 'Disable Validation' : 'Enable Validation'}
+                        </Button>
                     </Form.Item>
                 </Form>
             </Modal>
-            <Table
-                columns={columns}
-                dataSource={data}
-                pagination={false}
-                style={{ marginLeft: "100px", marginRight: "100px", marginTop: "30px"}}
-            />
-            <div style={{ position: 'fixed', bottom: '100px', left: '50%', transform: 'translateX(-50%)' }}>
-                <Pagination
-                    current={pagination.current}
-                    total={pagination.total}
-                    pageSize={pagination.pageSize}
-                    onChange={handlePageChange}
+            <div style={{marginLeft: '100px', marginRight: '100px', marginTop: '30px'}}>
+                <Table
+                    columns={columns.filter((column) => selectedColumns.includes(column.key as string))}
+                    dataSource={data}
+                    pagination={false}
                 />
+                <div style={{position: 'fixed', bottom: '100px', left: '50%', transform: 'translateX(-50%)'}}>
+                    <Pagination
+                        current={pagination.current}
+                        pageSize={pagination.pageSize}
+                        total={pagination.total}
+                        onChange={handlePageChange}
+                    />
+                </div>
             </div>
         </CustomLayout>
     );

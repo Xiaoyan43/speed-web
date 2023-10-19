@@ -83,10 +83,10 @@ const Examine: React.FC = () => {
       });
 
       if (response.ok) {
-        console.log('Article passed successfully');
+        console.log('userSubmit passed successfully');
         fetchData(pagination.current, pagination.pageSize); // Refresh the table data
       } else {
-        console.log('Failed to pass article');
+        console.log('Failed to pass userSubmit');
       }
     } catch (error) {
       console.error(error);
