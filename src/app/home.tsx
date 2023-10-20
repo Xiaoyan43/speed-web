@@ -93,8 +93,16 @@ const HomePage: React.FC = () => {
 
     const handleSubmit = async (values: any) => {
         try {
-            await axios.post('api/userSubmit', values);
-            form.resetFields();
+            try {
+                const response = await axios.post('api/userSubmit', values);
+                if (response.status === 200) {
+                    message.success('User submitted successfully.');
+                } else {
+                    message.error('User submission failed.');
+                }
+            } catch (error) {
+                message.error('An error occurred while submitting the user.');
+            }
             toggleForm();
             fetchData(pagination.current, pagination.pageSize); // Refresh data after submission
         } catch (error) {
@@ -379,6 +387,12 @@ const HomePage: React.FC = () => {
                         label="DOI"
                         name="doi"
                         rules={[{required: validateRequired, message: 'Please enter the DOI.'}]}>
+                        <Input/>
+                    </Form.Item>
+                    <Form.Item
+                        label="EMAIL"
+                        name="email"
+                        rules={[{required: validateRequired, message: 'Please enter the EMAIL.'}]}>
                         <Input/>
                     </Form.Item>
                     <Form.Item>
