@@ -1,4 +1,4 @@
-import { HomeOutlined, WifiOutlined, SmileOutlined } from '@ant-design/icons';
+import {HomeOutlined, WifiOutlined, SmileOutlined, SettingFilled, InfoCircleOutlined} from '@ant-design/icons';
 import { getTitles, matchPath, treeForeach } from './utils';
 
 const config: any['items'] = [
@@ -10,12 +10,12 @@ const config: any['items'] = [
   {
     label: 'EXAMINE',
     key: 'examine',
-    icon: <SmileOutlined />,
+    icon: <SettingFilled />,
   },
   {
     label: 'ANALYZE',
     key: 'analyze',
-    icon: <SmileOutlined />,
+    icon: <InfoCircleOutlined />,
   },
 ];
 

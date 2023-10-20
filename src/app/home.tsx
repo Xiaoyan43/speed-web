@@ -58,6 +58,8 @@ const HomePage: React.FC = () => {
             key: item._id,
         }));
 
+    const [searchKeyword, setSearchKeyword] = useState<string>('');
+
     const fetchData = (page: number, pageSize: number) => {
         fetch(`/api/userSubmitOfStatus?page=${page}&limit=${pageSize}&status=3`, {cache: 'no-store'})
             .then((response) => response.json())
@@ -219,6 +221,47 @@ const HomePage: React.FC = () => {
         handleSubmitRating();
     };
 
+    const handleSearch = (value: string) => {
+        setSearchKeyword(value);
+        searchAPI(value);
+    };
+
+    const searchAPI = (keyword: string) => {
+        const apiUrl = `/api/userSubmit/search?query=${encodeURIComponent(keyword)}`;
+
+        axios.get(apiUrl)
+            .then((response) => {
+                const data = response.data;
+                setJsonData(data.data);
+                setPagination({
+                    ...pagination,
+                    current: data.meta.currentPage,
+                    total: data.meta.totalItems,
+                });
+                console.log(response.data);
+            })
+            .catch((error) => {
+                // Handle errors
+                if (error.response) {
+                    // Request was made and server responded with an error response
+                    const status = error.response.status;
+                    if (status === 400) {
+                        message.error('Bad Request: Invalid search query.');
+                    } else if (status === 404) {
+                        message.error('Not Found: Search endpoint not found.');
+                    } else {
+                        message.error('An error occurred while searching.');
+                    }
+                } else if (error.request) {
+                    // Request was made but no response was received
+                    message.error('No response received from the server.');
+                } else {
+                    // Error occurred while setting up the request
+                    message.error('An error occurred while making the request.');
+                }
+            });
+    };
+
     const handleSubmitRating = async () => {
         try {
             // Send the rating to the server
@@ -232,6 +275,7 @@ const HomePage: React.FC = () => {
                 // The rating was submitted successfully
                 setShowModal(false);
                 message.success("Rating submitted successfully");
+                fetchData(pagination.current, pagination.pageSize); // Fetch initial data
             } else {
                 // There was an error submitting the rating
                 message.error("Failed to submit rating");
@@ -256,6 +300,13 @@ const HomePage: React.FC = () => {
                 </div>
             </Modal>
             <div style={{textAlign: 'right', marginTop: '30px', marginRight: '100px'}}>
+                <Input.Search
+                    placeholder="Search"
+                    allowClear
+                    onSearch={handleSearch}
+                    style={{ width: 200 }}
+                />
+                <span style={{marginLeft: "20px"}}></span>
                 <Dropdown
                     overlay={
                         <Menu>
@@ -281,7 +332,7 @@ const HomePage: React.FC = () => {
                 </Button>
             </div>
             <Modal visible={showForm} onCancel={toggleForm} footer={null}>
-                <Form form={form} onFinish={handleSubmit}>
+                <Form form={form} onFinish={handleSubmit} style={{marginTop: "30px"}}>
                     <Form.Item
                         label="Title"
                         name="title"
@@ -333,9 +384,6 @@ const HomePage: React.FC = () => {
                     <Form.Item>
                         <Button type="primary" htmlType="submit">
                             Submit
-                        </Button>
-                        <Button htmlType="button" onClick={handleToggleValidation} style={{marginLeft: '10px'}}>
-                            {validateRequired ? 'Disable Validation' : 'Enable Validation'}
                         </Button>
                     </Form.Item>
                 </Form>
