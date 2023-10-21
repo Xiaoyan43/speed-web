@@ -1,12 +1,14 @@
 'use client'
 
 import React, {useEffect, useState} from 'react';
-import {Space, Table, Tag, Button, Pagination, Modal, Form, Input, Dropdown, Menu, Checkbox, Rate, message} from 'antd';
+import {Button, Checkbox, Dropdown, Form, Input, Menu, message, Modal, Pagination, Rate, Table} from 'antd';
 import type {ColumnsType} from 'antd/es/table';
 import {CustomLayout} from "@/components";
 import axios from "axios";
 import Cookies from "next-cookies";
 import {NextPageContext} from "next";
+import {UploadOutlined} from "@ant-design/icons";
+import Dragger from "antd/es/upload/Dragger";
 
 interface DataType {
     _id: string;
@@ -231,7 +233,11 @@ const HomePage: React.FC = () => {
 
     const handleSearch = (value: string) => {
         setSearchKeyword(value);
-        searchAPI(value);
+        if (value === ''){
+            fetchData(pagination.current, pagination.pageSize);
+        }else {
+            searchAPI(value);
+        }
     };
 
     const searchAPI = (keyword: string) => {
@@ -269,6 +275,49 @@ const HomePage: React.FC = () => {
                 }
             });
     };
+
+    const fieldsToParse = [
+        'title',
+        'author',
+        'organization',
+        'year',
+        'volume',
+        'number',
+        'pages',
+        'doi',
+        'email',
+    ];
+
+    const handleImport = (file: File) => {
+        const reader = new FileReader();
+        const parsedFields: { [key: string]: any } = {};
+        reader.onload = (e: ProgressEvent<FileReader>) => {
+            const bibtxtContent = e.target?.result as string;
+            fieldsToParse.forEach((field: string) => {
+                if (field === 'author'){
+                    parsedFields['authors'] = getBibtxtFieldValue(bibtxtContent, field);
+                } if (field === 'organization') {
+                    parsedFields['journal'] = getBibtxtFieldValue(bibtxtContent, field);
+                }else {
+                    parsedFields[field] = getBibtxtFieldValue(bibtxtContent, field);
+                }
+            });
+
+            form.setFieldsValue(parsedFields);
+        };
+
+        reader.readAsText(file);
+    };
+
+
+    function getBibtxtFieldValue(bibtxtContent: string, field: string): string | null {
+        const regex = new RegExp(`${field}\\s*=\\s*{([^}]*)}`, 'i');
+        const match = bibtxtContent.match(regex);
+        if (match && match.length > 1) {
+            return match[1].trim();
+        }
+        return null;
+    }
 
     const handleSubmitRating = async () => {
         try {
@@ -401,6 +450,13 @@ const HomePage: React.FC = () => {
                         </Button>
                     </Form.Item>
                 </Form>
+                <Dragger beforeUpload={handleImport} multiple={false} showUploadList={false}>
+                    <p className="ant-upload-drag-icon">
+                        <UploadOutlined />
+                    </p>
+                    <p className="ant-upload-text">Click or drag file to this area to import</p>
+                    <p className="ant-upload-hint">Support for a single Bibtxt file</p>
+                </Dragger>
             </Modal>
             <div style={{marginLeft: '100px', marginRight: '100px', marginTop: '30px'}}>
                 <Table
